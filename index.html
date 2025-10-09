@@ -351,6 +351,8 @@
             padding: 20px;
             overflow-y: auto;
             background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.05"><rect width="100" height="100" fill="none" stroke="gray" stroke-width="2"/></svg>');
+            display: flex;
+            flex-direction: column;
         }
 
         .message {
@@ -360,6 +362,7 @@
             border-radius: 15px;
             position: relative;
             animation: fadeIn 0.3s ease;
+            word-wrap: break-word;
         }
 
         @keyframes fadeIn {
@@ -399,16 +402,26 @@
             border-top: 1px solid var(--gray);
             display: flex;
             gap: 10px;
+            align-items: flex-end;
+        }
+
+        .message-input-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         .message-input {
-            flex: 1;
+            width: 100%;
             padding: 15px 20px;
             border: 1px solid var(--gray);
-            border-radius: 30px;
+            border-radius: 25px;
             font-size: 1rem;
             resize: none;
-            height: 50px;
+            min-height: 50px;
+            max-height: 150px;
+            font-family: inherit;
+            line-height: 1.4;
         }
 
         .message-input:focus {
@@ -428,11 +441,70 @@
             justify-content: center;
             align-items: center;
             transition: all 0.3s ease;
+            flex-shrink: 0;
         }
 
         .send-btn:hover {
             background: var(--primary-dark);
             transform: scale(1.05);
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray-dark);
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            opacity: 0.9;
+            transition: all 0.3s ease;
+            z-index: 10;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .scroll-indicator:hover {
+            opacity: 1;
+            transform: translateX(-50%) scale(1.05);
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 10px 15px;
+            color: var(--gray-dark);
+            font-style: italic;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--gray-dark);
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
         }
     </style>
 </head>
@@ -513,7 +585,9 @@
                 </div>
                 
                 <div class="message-input-area hidden" id="message-input-area">
-                    <textarea class="message-input" id="message-input" placeholder="Введите сообщение..."></textarea>
+                    <div class="message-input-container">
+                        <textarea class="message-input" id="message-input" placeholder="Введите сообщение..." rows="1"></textarea>
+                    </div>
                     <button class="send-btn" onclick="sendMessage()">
                         <i class="fas fa-paper-plane"></i>
                     </button>
@@ -547,6 +621,7 @@
         let supabase = null;
         let messageSubscription = null;
         let currentConversationId = null;
+        let isNearBottom = true;
 
         // Функция инициализации Supabase
         function initSupabase() {
@@ -759,8 +834,12 @@
                         if (currentContact && getConversationId(currentContact) === conversationId) {
                             displayMessage(payload.new);
                             
-                            const messagesContainer = document.getElementById('messages-container');
-                            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                            // Прокручиваем вниз только если пользователь уже находится внизу
+                            if (isNearBottom) {
+                                scrollToBottom();
+                            } else {
+                                showScrollIndicator();
+                            }
                             
                             updateLastMessageInContacts(payload.new);
                         }
@@ -986,6 +1065,7 @@
                             <p>Начните общение с этим контактом</p>
                         </div>
                     `;
+                    scrollToBottom();
                     return;
                 }
                 
@@ -993,7 +1073,7 @@
                     displayMessage(message);
                 });
                 
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                scrollToBottom();
                 
             } catch (error) {
                 console.error('Error loading messages:', error);
@@ -1042,6 +1122,7 @@
                 if (error) throw error;
                 
                 messageInput.value = '';
+                resetTextareaHeight();
                 
                 updateLastMessageInContacts({
                     sender_phone: currentUser,
@@ -1053,6 +1134,44 @@
                 console.error('Error sending message:', error);
                 showNotification('Ошибка при отправке сообщения', 'error');
             }
+        }
+
+        // Функции для управления прокруткой
+        function scrollToBottom() {
+            const messagesContainer = document.getElementById('messages-container');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            hideScrollIndicator();
+        }
+
+        function showScrollIndicator() {
+            let indicator = document.getElementById('scroll-indicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'scroll-indicator';
+                indicator.className = 'scroll-indicator';
+                indicator.innerHTML = '<i class="fas fa-chevron-down"></i> Новые сообщения';
+                indicator.onclick = scrollToBottom;
+                document.getElementById('messages-container').appendChild(indicator);
+            }
+        }
+
+        function hideScrollIndicator() {
+            const indicator = document.getElementById('scroll-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        // Функция для автоматического изменения высоты textarea
+        function autoResizeTextarea() {
+            const textarea = document.getElementById('message-input');
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+        }
+
+        function resetTextareaHeight() {
+            const textarea = document.getElementById('message-input');
+            textarea.style.height = 'auto';
         }
 
         // Инициализация при загрузке
@@ -1085,10 +1204,25 @@
             
             const messageInput = document.getElementById('message-input');
             if (messageInput) {
+                messageInput.addEventListener('input', autoResizeTextarea);
+                
                 messageInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         sendMessage();
+                    }
+                });
+            }
+            
+            // Отслеживание прокрутки для показа индикатора новых сообщений
+            const messagesContainer = document.getElementById('messages-container');
+            if (messagesContainer) {
+                messagesContainer.addEventListener('scroll', function() {
+                    const threshold = 100;
+                    isNearBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < threshold;
+                    
+                    if (isNearBottom) {
+                        hideScrollIndicator();
                     }
                 });
             }
