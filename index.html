@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KoiAu Messenger</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #6C63FF;
+            --primary-dark: #5a52d5;
+            --secondary: #FF6584;
+            --light: #F7F7F7;
+            --dark: #333333;
+            --gray: #E5E5E5;
+            --gray-dark: #A0A0A0;
+            --success: #4CAF50;
+            --error: #F44336;
+        }
+
+        body {
+            background: linear-gradient(135deg, #6C63FF 0%, #FF6584 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            display: flex;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Экран приветствия */
+        .welcome-screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 4rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .welcome-screen h1 {
+            font-size: 2.5rem;
+            color: var(--dark);
+            margin-bottom: 10px;
+        }
+
+        .welcome-screen p {
+            color: var(--gray-dark);
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+            max-width: 500px;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(108, 99, 255, 0.3);
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        /* Экран привязки номера */
+        .phone-setup {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .phone-setup h2 {
+            font-size: 2rem;
+            color: var(--dark);
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--dark);
+            font-weight: 500;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid var(--gray);
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .code-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .code-input {
+            width: 60px;
+            height: 60px;
+            text-align: center;
+            font-size: 1.5rem;
+            border: 2px solid var(--gray);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .code-input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        /* Основной интерфейс */
+        .main-app {
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+
+        /* Боковая панель контактов */
+        .contacts-sidebar {
+            width: 350px;
+            background: var(--light);
+            border-right: 1px solid var(--gray);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-profile {
+            padding: 20px;
+            background: white;
+            border-bottom: 1px solid var(--gray);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .user-info h3 {
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+
+        .user-info p {
+            color: var(--gray-dark);
+            font-size: 0.9rem;
+        }
+
+        .search-container {
+            padding: 15px;
+            border-bottom: 1px solid var(--gray);
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--gray);
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .contacts-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .contact-item {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .contact-item:hover {
+            background: rgba(108, 99, 255, 0.1);
+        }
+
+        .contact-item.active {
+            background: rgba(108, 99, 255, 0.15);
+        }
+
+        .contact-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: var(--secondary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .contact-info h4 {
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+
+        .contact-info p {
+            color: var(--gray-dark);
+            font-size: 0.8rem;
+        }
+
+        .add-contact-btn {
+            margin: 15px;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .add-contact-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Область чата */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: white;
+            border-bottom: 1px solid var(--gray);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .chat-header-info h3 {
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+
+        .chat-header-info p {
+            color: var(--gray-dark);
+            font-size: 0.9rem;
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.05"><rect width="100" height="100" fill="none" stroke="gray" stroke-width="2"/></svg>');
+        }
+
+        .message {
+            max-width: 70%;
+            margin-bottom: 15px;
+            padding: 12px 15px;
+            border-radius: 15px;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.own {
+            background: var(--primary);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.other {
+            background: var(--gray);
+            color: var(--dark);
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-sender {
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            text-align: right;
+            margin-top: 5px;
+            opacity: 0.7;
+        }
+
+        .message-input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid var(--gray);
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 1px solid var(--gray);
+            border-radius: 30px;
+            font-size: 1rem;
+            resize: none;
+            height: 50px;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .send-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .send-btn:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        /* Уведомления */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: var(--success);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .notification.error {
+            background: var(--error);
+        }
+
+        .notification.warning {
+            background: #FF9800;
+        }
+
+        /* Модальные окна */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: var(--dark);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray-dark);
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .container {
+                height: 95vh;
+                border-radius: 10px;
+            }
+            
+            .contacts-sidebar {
+                width: 100%;
+                position: absolute;
+                z-index: 10;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .contacts-sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .menu-toggle {
+                display: block;
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+                color: var(--dark);
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+        }
+
+        .menu-toggle {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Экран приветствия -->
+        <div class="welcome-screen" id="welcome-screen">
+            <div class="logo">
+                <i class="fas fa-fish"></i>
+            </div>
+            <h1>Добро пожаловать в KoiAu</h1>
+            <p>Безопасный и простой мессенджер с автоматическим удалением сообщений через 24 часа</p>
+            <button class="btn" onclick="showPhoneSetup()">
+                <i class="fas fa-phone-alt"></i> Начать с привязки номера
+            </button>
+        </div>
+
+        <!-- Экран привязки номера -->
+        <div class="phone-setup hidden" id="phone-setup">
+            <h2>Привязка номера телефона</h2>
+            <div class="input-group">
+                <label for="phone-input">Введите ваш номер телефона</label>
+                <input type="tel" id="phone-input" class="input-field" placeholder="+7 (XXX) XXX-XX-XX">
+            </div>
+            <button class="btn" onclick="sendConfirmationCode()">
+                <i class="fas fa-sms"></i> Получить код подтверждения
+            </button>
+            
+            <div id="code-verification" class="hidden">
+                <p>Введите 4-значный код из уведомления</p>
+                <div class="code-inputs">
+                    <input type="text" class="code-input" maxlength="1" oninput="moveToNext(this, 1)">
+                    <input type="text" class="code-input" maxlength="1" oninput="moveToNext(this, 2)">
+                    <input type="text" class="code-input" maxlength="1" oninput="moveToNext(this, 3)">
+                    <input type="text" class="code-input" maxlength="1" oninput="moveToNext(this, 4)">
+                </div>
+                <button class="btn" onclick="verifyCode()">
+                    <i class="fas fa-check"></i> Подтвердить номер
+                </button>
+            </div>
+        </div>
+
+        <!-- Основной интерфейс мессенджера -->
+        <div class="main-app hidden" id="main-app">
+            <!-- Боковая панель контактов -->
+            <div class="contacts-sidebar" id="contacts-sidebar">
+                <div class="user-profile">
+                    <button class="menu-toggle" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="user-avatar" id="user-avatar">U</div>
+                    <div class="user-info">
+                        <h3 id="user-phone">+7 (XXX) XXX-XX-XX</h3>
+                        <p>Онлайн</p>
+                    </div>
+                </div>
+                
+                <div class="search-container">
+                    <input type="text" class="search-box" placeholder="Поиск контактов...">
+                </div>
+                
+                <div class="contacts-list" id="contacts-list">
+                    <!-- Контакты будут загружены здесь -->
+                </div>
+                
+                <button class="add-contact-btn" onclick="showAddContactModal()">
+                    <i class="fas fa-user-plus"></i> Добавить контакт
+                </button>
+            </div>
+
+            <!-- Область чата -->
+            <div class="chat-area">
+                <div class="chat-header" id="chat-header">
+                    <button class="menu-toggle" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="contact-avatar" id="current-contact-avatar">C</div>
+                    <div class="chat-header-info">
+                        <h3 id="current-contact-name">Выберите контакт</h3>
+                        <p id="current-contact-status">Начните общение</p>
+                    </div>
+                </div>
+                
+                <div class="messages-container" id="messages-container">
+                    <div class="welcome-message">
+                        <p>Выберите контакт из списка, чтобы начать общение</p>
+                    </div>
+                </div>
+                
+                <div class="message-input-area hidden" id="message-input-area">
+                    <textarea class="message-input" id="message-input" placeholder="Введите сообщение..."></textarea>
+                    <button class="send-btn" onclick="sendMessage()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления контакта -->
+    <div class="modal hidden" id="add-contact-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Добавить контакт</h3>
+                <button class="close-btn" onclick="closeAddContactModal()">&times;</button>
+            </div>
+            <div class="input-group">
+                <label for="new-contact-phone">Номер телефона контакта</label>
+                <input type="tel" id="new-contact-phone" class="input-field" placeholder="+7 (XXX) XXX-XX-XX">
+            </div>
+            <button class="btn" onclick="addContact()" style="width: 100%; margin-top: 20px;">
+                <i class="fas fa-user-plus"></i> Добавить контакт
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Supabase
+        const supabaseUrl = 'https://pyxfhszrzzeitqwcpjlf.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5eGZoc3pyenplaXRxd2NwamxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5OTU1MTQsImV4cCI6MjA3NTU3MTUxNH0.tjopCw35-JZP4pyVjL-Zew-9NsnP9VPKOseDvEO7Ju4';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Глобальные переменные
+        let currentUser = null;
+        let currentContact = null;
+        let confirmationCode = '';
+
+        // Показать экран привязки номера
+        function showPhoneSetup() {
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('phone-setup').classList.remove('hidden');
+        }
+
+        // Генерация 4-значного кода
+        function generateConfirmationCode() {
+            return Math.floor(1000 + Math.random() * 9000).toString();
+        }
+
+        // Отправка кода подтверждения
+        async function sendConfirmationCode() {
+            const phone = document.getElementById('phone-input').value;
+            
+            if (!phone) {
+                showNotification('Введите номер телефона', 'error');
+                return;
+            }
+            
+            confirmationCode = generateConfirmationCode();
+            
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .upsert({ 
+                        phone: phone,
+                        confirmation_code: confirmationCode,
+                        is_verified: false
+                    }, { onConflict: 'phone' });
+                    
+                if (error) throw error;
+                
+                // Показываем уведомление с кодом
+                showNotification(`Код подтверждения: ${confirmationCode}`);
+                document.getElementById('code-verification').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Ошибка при отправке кода', 'error');
+            }
+        }
+
+        // Переход к следующему полю ввода кода
+        function moveToNext(input, nextIndex) {
+            if (input.value.length === 1) {
+                if (nextIndex <= 4) {
+                    const nextInput = document.querySelector(`.code-input:nth-child(${nextIndex})`);
+                    if (nextInput) nextInput.focus();
+                }
+            }
+        }
+
+        // Подтверждение кода
+        async function verifyCode() {
+            const phone = document.getElementById('phone-input').value;
+            const codeInputs = document.querySelectorAll('.code-input');
+            let enteredCode = '';
+            
+            codeInputs.forEach(input => {
+                enteredCode += input.value;
+            });
+            
+            if (enteredCode.length !== 4) {
+                showNotification('Введите полный код', 'error');
+                return;
+            }
+            
+            if (enteredCode !== confirmationCode) {
+                showNotification('Неверный код подтверждения', 'error');
+                return;
+            }
+            
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .update({ is_verified: true })
+                    .eq('phone', phone)
+                    .eq('confirmation_code', confirmationCode);
+                    
+                if (error) throw error;
+                
+                currentUser = phone;
+                localStorage.setItem('currentUser', phone);
+                
+                document.getElementById('phone-setup').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                
+                // Обновляем информацию о пользователе
+                document.getElementById('user-phone').textContent = phone;
+                document.getElementById('user-avatar').textContent = phone.slice(-2);
+                
+                loadContacts();
+                requestNotificationPermission();
+                startCleanupInterval();
+                
+                showNotification('Номер успешно подтвержден!');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Ошибка при подтверждении кода', 'error');
+            }
+        }
+
+        // Запрос разрешения на уведомления
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+
+        // Показать уведомление
+        function showNotification(message, type = 'success') {
+            // Удаляем предыдущие уведомления
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(notification => notification.remove());
+            
+            // Создаем новое уведомление
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            let icon = 'fa-check-circle';
+            if (type === 'error') icon = 'fa-exclamation-circle';
+            if (type === 'warning') icon = 'fa-exclamation-triangle';
+            
+            notification.innerHTML = `
+                <i class="fas ${icon}"></i>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Уведомление рабочего стола
+            if (Notification.permission === 'granted') {
+                new Notification('KoiAu Messenger', {
+                    body: message,
+                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🐠</text></svg>'
+                });
+            }
+            
+            // Автоматическое удаление уведомления
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+
+        // Загрузка контактов
+        async function loadContacts() {
+            try {
+                const { data, error } = await supabase
+                    .from('contacts')
+                    .select('contact_phone')
+                    .eq('user_id', currentUser);
+                    
+                if (error) throw error;
+                
+                const contactsList = document.getElementById('contacts-list');
+                contactsList.innerHTML = '';
+                
+                if (data.length === 0) {
+                    contactsList.innerHTML = '<p style="text-align: center; padding: 20px; color: var(--gray-dark);">Контакты не найдены</p>';
+                    return;
+                }
+                
+                data.forEach(contact => {
+                    const contactElement = document.createElement('div');
+                    contactElement.className = 'contact-item';
+                    contactElement.onclick = () => openChat(contact.contact_phone);
+                    
+                    contactElement.innerHTML = `
+                        <div class="contact-avatar">${contact.contact_phone.slice(-2)}</div>
+                        <div class="contact-info">
+                            <h4>${contact.contact_phone}</h4>
+                            <p>В сети</p>
+                        </div>
+                    `;
+                    
+                    contactsList.appendChild(contactElement);
+                });
+                
+            } catch (error) {
+                console.error('Error loading contacts:', error);
+            }
+        }
+
+        // Показать модальное окно добавления контакта
+        function showAddContactModal() {
+            document.getElementById('add-contact-modal').classList.remove('hidden');
+        }
+
+        // Закрыть модальное окно добавления контакта
+        function closeAddContactModal() {
+            document.getElementById('add-contact-modal').classList.add('hidden');
+            document.getElementById('new-contact-phone').value = '';
+        }
+
+        // Добавление контакта
+        async function addContact() {
+            const contactPhone = document.getElementById('new-contact-phone').value;
+            
+            if (!contactPhone) {
+                showNotification('Введите номер телефона', 'error');
+                return;
+            }
+            
+            if (contactPhone === currentUser) {
+                showNotification('Нельзя добавить свой номер', 'error');
+                return;
+            }
+            
+            try {
+                // Проверяем существует ли пользователь
+                const { data: userData, error: userError } = await supabase
+                    .from('users')
+                    .select('phone')
+                    .eq('phone', contactPhone)
+                    .eq('is_verified', true);
+                    
+                if (userError) throw userError;
+                
+                if (userData.length === 0) {
+                    showNotification('Контакт не найден', 'error');
+                    return;
+                }
+                
+                // Проверяем, не добавлен ли уже контакт
+                const { data: existingContact, error: checkError } = await supabase
+                    .from('contacts')
+                    .select('id')
+                    .eq('user_id', currentUser)
+                    .eq('contact_phone', contactPhone);
+                    
+                if (checkError) throw checkError;
+                
+                if (existingContact.length > 0) {
+                    showNotification('Контакт уже добавлен', 'warning');
+                    closeAddContactModal();
+                    return;
+                }
+                
+                // Добавляем контакт
+                const { data, error } = await supabase
+                    .from('contacts')
+                    .insert({
+                        user_id: currentUser,
+                        contact_phone: contactPhone
+                    });
+                    
+                if (error) throw error;
+                
+                loadContacts();
+                closeAddContactModal();
+                showNotification('Контакт успешно добавлен');
+                
+            } catch (error) {
+                console.error('Error adding contact:', error);
+                showNotification('Ошибка при добавлении контакта', 'error');
+            }
+        }
+
+        // Открытие чата
+        function openChat(contactPhone) {
+            currentContact = contactPhone;
+            
+            // Обновляем заголовок чата
+            document.getElementById('current-contact-name').textContent = contactPhone;
+            document.getElementById('current-contact-avatar').textContent = contactPhone.slice(-2);
+            document.getElementById('current-contact-status').textContent = 'В сети';
+            
+            // Активируем выбранный контакт
+            document.querySelectorAll('.contact-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            // Показываем область ввода сообщения
+            document.getElementById('message-input-area').classList.remove('hidden');
+            
+            // Загружаем сообщения
+            loadMessages();
+            
+            // Подписываемся на обновления в реальном времени
+            setupRealtimeSubscription();
+            
+            // На мобильных устройствах скрываем боковую панель
+            if (window.innerWidth <= 768) {
+                document.getElementById('contacts-sidebar').classList.remove('active');
+            }
+        }
+
+        // Получение ID беседы
+        function getConversationId(contactPhone) {
+            const phones = [currentUser, contactPhone].sort();
+            return phones.join('_');
+        }
+
+        // Загрузка сообщений
+        async function loadMessages() {
+            try {
+                const conversationId = getConversationId(currentContact);
+                
+                const { data, error } = await supabase
+                    .from('messages')
+                    .select('*')
+                    .eq('conversation_id', conversationId)
+                    .order('created_at', { ascending: true });
+                    
+                if (error) throw error;
+                
+                const messagesContainer = document.getElementById('messages-container');
+                messagesContainer.innerHTML = '';
+                
+                if (data.length === 0) {
+                    messagesContainer.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: var(--gray-dark);">
+                            <p>Начните общение с этим контактом</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                data.forEach(message => {
+                    displayMessage(message);
+                });
+                
+                // Прокручиваем к последнему сообщению
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+            } catch (error) {
+                console.error('Error loading messages:', error);
+            }
+        }
+
+        // Отображение сообщения
+        function displayMessage(message) {
+            const messagesContainer = document.getElementById('messages-container');
+            const messageElement = document.createElement('div');
+            
+            const isOwn = message.sender_phone === currentUser;
+            messageElement.className = `message ${isOwn ? 'own' : 'other'}`;
+            
+            const time = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            messageElement.innerHTML = `
+                ${!isOwn ? `<div class="message-sender">${message.sender_phone}</div>` : ''}
+                <div class="message-content">${message.message}</div>
+                <div class="message-time">${time}</div>
+            `;
+            
+            messagesContainer.appendChild(messageElement);
+        }
+
+        // Настройка подписки в реальном времени
+        function setupRealtimeSubscription() {
+            // Отписываемся от предыдущих подписок
+            supabase.removeAllChannels();
+            
+            const conversationId = getConversationId(currentContact);
+            
+            // Подписываемся на новые сообщения
+            supabase
+                .channel('messages')
+                .on('postgres_changes', 
+                    { 
+                        event: 'INSERT', 
+                        schema: 'public', 
+                        table: 'messages',
+                        filter: `conversation_id=eq.${conversationId}`
+                    }, 
+                    (payload) => {
+                        displayMessage(payload.new);
+                        const messagesContainer = document.getElementById('messages-container');
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                        
+                        // Показываем уведомление, если приложение не в фокусе
+                        if (document.hidden && payload.new.sender_phone !== currentUser) {
+                            showNotification(`Новое сообщение от ${payload.new.sender_phone}: ${payload.new.message}`);
+                        }
+                    }
+                )
+                .subscribe();
+        }
+
+        // Отправка сообщения
+        async function sendMessage() {
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value.trim();
+            
+            if (!message || !currentContact) return;
+            
+            try {
+                const conversationId = getConversationId(currentContact);
+                
+                const { data, error } = await supabase
+                    .from('messages')
+                    .insert({
+                        conversation_id: conversationId,
+                        sender_phone: currentUser,
+                        receiver_phone: currentContact,
+                        message: message
+                    });
+                    
+                if (error) throw error;
+                
+                messageInput.value = '';
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showNotification('Ошибка при отправке сообщения', 'error');
+            }
+        }
+
+        // Отправка сообщения при нажатии Enter
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Переключение боковой панели на мобильных устройствах
+        function toggleSidebar() {
+            const sidebar = document.getElementById('contacts-sidebar');
+            sidebar.classList.toggle('active');
+        }
+
+        // Автоматическое удаление старых сообщений
+        async function cleanupOldMessages() {
+            try {
+                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+                
+                const { error } = await supabase
+                    .from('messages')
+                    .delete()
+                    .lt('created_at', oneDayAgo);
+                    
+                if (error) throw error;
+                
+            } catch (error) {
+                console.error('Error cleaning up messages:', error);
+            }
+        }
+
+        // Запуск очистки каждые 6 часов
+        function startCleanupInterval() {
+            // Запускаем сразу при загрузке
+            cleanupOldMessages();
+            
+            // Затем каждые 6 часов
+            setInterval(cleanupOldMessages, 6 * 60 * 60 * 1000);
+        }
+
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            // Проверяем авторизацию пользователя
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = savedUser;
+                document.getElementById('welcome-screen').classList.add('hidden');
+                document.getElementById('phone-setup').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                
+                // Обновляем информацию о пользователе
+                document.getElementById('user-phone').textContent = savedUser;
+                document.getElementById('user-avatar').textContent = savedUser.slice(-2);
+                
+                loadContacts();
+                requestNotificationPermission();
+                startCleanupInterval();
+            }
+            
+            // Форматирование номера телефона
+            const phoneInputs = document.querySelectorAll('input[type="tel"]');
+            phoneInputs.forEach(input => {
+                input.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/\D/g, '');
+                    if (value.startsWith('7') || value.startsWith('8')) {
+                        value = value.substring(1);
+                    }
+                    
+                    if (value.length > 0) {
+                        value = '+7 (' + value;
+                        if (value.length > 7) {
+                            value = value.substring(0, 7) + ') ' + value.substring(7);
+                        }
+                        if (value.length > 12) {
+                            value = value.substring(0, 12) + '-' + value.substring(12);
+                        }
+                        if (value.length > 15) {
+                            value = value.substring(0, 15) + '-' + value.substring(15, 17);
+                        }
+                    }
+                    
+                    e.target.value = value;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
