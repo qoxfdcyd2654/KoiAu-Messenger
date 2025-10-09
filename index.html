@@ -50,8 +50,7 @@
             display: none !important;
         }
 
-        /* Экран приветствия */
-        .welcome-screen {
+        .welcome-screen, .phone-setup, .main-app {
             width: 100%;
             height: 100%;
             display: flex;
@@ -68,13 +67,19 @@
             margin-bottom: 20px;
         }
 
-        .welcome-screen h1 {
+        h1 {
             font-size: 2.5rem;
             color: var(--dark);
             margin-bottom: 10px;
         }
 
-        .welcome-screen p {
+        h2 {
+            font-size: 2rem;
+            color: var(--dark);
+            margin-bottom: 30px;
+        }
+
+        p {
             color: var(--gray-dark);
             margin-bottom: 30px;
             font-size: 1.1rem;
@@ -99,24 +104,6 @@
         .btn:hover {
             background: var(--primary-dark);
             transform: translateY(-2px);
-        }
-
-        /* Экран привязки номера */
-        .phone-setup {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 40px;
-            text-align: center;
-        }
-
-        .phone-setup h2 {
-            font-size: 2rem;
-            color: var(--dark);
-            margin-bottom: 30px;
         }
 
         .input-group {
@@ -169,14 +156,72 @@
             outline: none;
         }
 
-        /* Основной интерфейс */
-        .main-app {
-            width: 100%;
-            height: 100%;
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: var(--success);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
             display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
         }
 
-        /* Боковая панель контактов */
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .notification.error {
+            background: var(--error);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: var(--dark);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray-dark);
+        }
+
         .contacts-sidebar {
             width: 350px;
             background: var(--light);
@@ -194,7 +239,7 @@
             gap: 15px;
         }
 
-        .user-avatar {
+        .user-avatar, .contact-avatar {
             width: 50px;
             height: 50px;
             border-radius: 50%;
@@ -207,6 +252,10 @@
             font-size: 1.2rem;
         }
 
+        .contact-avatar {
+            background: var(--secondary);
+        }
+
         .user-info h3 {
             color: var(--dark);
             margin-bottom: 5px;
@@ -215,24 +264,7 @@
         .user-info p {
             color: var(--gray-dark);
             font-size: 0.9rem;
-        }
-
-        .search-container {
-            padding: 15px;
-            border-bottom: 1px solid var(--gray);
-        }
-
-        .search-box {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid var(--gray);
-            border-radius: 20px;
-            font-size: 0.9rem;
-        }
-
-        .search-box:focus {
-            outline: none;
-            border-color: var(--primary);
+            margin: 0;
         }
 
         .contacts-list {
@@ -258,18 +290,6 @@
             background: rgba(108, 99, 255, 0.15);
         }
 
-        .contact-avatar {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            background: var(--secondary);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-        }
-
         .contact-info h4 {
             color: var(--dark);
             margin-bottom: 5px;
@@ -278,6 +298,7 @@
         .contact-info p {
             color: var(--gray-dark);
             font-size: 0.8rem;
+            margin: 0;
         }
 
         .add-contact-btn {
@@ -299,7 +320,6 @@
             background: var(--primary-dark);
         }
 
-        /* Область чата */
         .chat-area {
             flex: 1;
             display: flex;
@@ -323,6 +343,7 @@
         .chat-header-info p {
             color: var(--gray-dark);
             font-size: 0.9rem;
+            margin: 0;
         }
 
         .messages-container {
@@ -413,115 +434,6 @@
             background: var(--primary-dark);
             transform: scale(1.05);
         }
-
-        /* Уведомления */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            background: var(--success);
-            color: white;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        .notification.error {
-            background: var(--error);
-        }
-
-        .notification.warning {
-            background: #FF9800;
-        }
-
-        /* Модальные окна */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1001;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .modal-header h3 {
-            color: var(--dark);
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--gray-dark);
-        }
-
-        /* Адаптивность */
-        @media (max-width: 768px) {
-            .container {
-                height: 95vh;
-                border-radius: 10px;
-            }
-            
-            .contacts-sidebar {
-                width: 100%;
-                position: absolute;
-                z-index: 10;
-                transform: translateX(-100%);
-                transition: transform 0.3s ease;
-            }
-            
-            .contacts-sidebar.active {
-                transform: translateX(0);
-            }
-            
-            .menu-toggle {
-                display: block;
-                background: none;
-                border: none;
-                font-size: 1.5rem;
-                cursor: pointer;
-                color: var(--dark);
-            }
-            
-            .message {
-                max-width: 85%;
-            }
-        }
-
-        .menu-toggle {
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -568,18 +480,11 @@
             <!-- Боковая панель контактов -->
             <div class="contacts-sidebar" id="contacts-sidebar">
                 <div class="user-profile">
-                    <button class="menu-toggle" onclick="toggleSidebar()">
-                        <i class="fas fa-bars"></i>
-                    </button>
                     <div class="user-avatar" id="user-avatar">U</div>
                     <div class="user-info">
                         <h3 id="user-phone">+7 (XXX) XXX-XX-XX</h3>
                         <p>Онлайн</p>
                     </div>
-                </div>
-                
-                <div class="search-container">
-                    <input type="text" class="search-box" placeholder="Поиск контактов...">
                 </div>
                 
                 <div class="contacts-list" id="contacts-list">
@@ -594,9 +499,6 @@
             <!-- Область чата -->
             <div class="chat-area">
                 <div class="chat-header" id="chat-header">
-                    <button class="menu-toggle" onclick="toggleSidebar()">
-                        <i class="fas fa-bars"></i>
-                    </button>
                     <div class="contact-avatar" id="current-contact-avatar">C</div>
                     <div class="chat-header-info">
                         <h3 id="current-contact-name">Выберите контакт</h3>
@@ -646,7 +548,7 @@
         // Глобальные переменные
         let currentUser = null;
         let currentContact = null;
-        let currentConfirmationCode = ''; // Переименовали переменную
+        let confirmationCode = '';
 
         // Показать экран привязки номера
         function showPhoneSetup() {
@@ -669,22 +571,22 @@
             }
             
             // Генерируем код и сохраняем в переменную
-            currentConfirmationCode = generateConfirmationCode();
-            console.log('Generated code:', currentConfirmationCode); // Для отладки
+            confirmationCode = generateConfirmationCode();
+            console.log('Generated code:', confirmationCode);
             
             try {
                 const { data, error } = await supabase
                     .from('users')
                     .upsert({ 
                         phone: phone,
-                        confirmation_code: currentConfirmationCode,
+                        confirmation_code: confirmationCode,
                         is_verified: false
                     }, { onConflict: 'phone' });
                     
                 if (error) throw error;
                 
                 // Показываем уведомление с кодом
-                showNotification(`Код подтверждения: ${currentConfirmationCode}`);
+                showNotification(`Код подтверждения: ${confirmationCode}`);
                 document.getElementById('code-verification').classList.remove('hidden');
                 
             } catch (error) {
@@ -718,8 +620,7 @@
                 return;
             }
             
-            // Используем переименованную переменную
-            if (enteredCode !== currentConfirmationCode) {
+            if (enteredCode !== confirmationCode) {
                 showNotification('Неверный код подтверждения', 'error');
                 return;
             }
@@ -729,7 +630,7 @@
                     .from('users')
                     .update({ is_verified: true })
                     .eq('phone', phone)
-                    .eq('confirmation_code', currentConfirmationCode);
+                    .eq('confirmation_code', confirmationCode);
                     
                 if (error) throw error;
                 
@@ -744,21 +645,12 @@
                 document.getElementById('user-avatar').textContent = phone.slice(-2);
                 
                 loadContacts();
-                requestNotificationPermission();
-                startCleanupInterval();
                 
                 showNotification('Номер успешно подтвержден!');
                 
             } catch (error) {
                 console.error('Error:', error);
                 showNotification('Ошибка при подтверждении кода', 'error');
-            }
-        }
-
-        // Запрос разрешения на уведомления
-        function requestNotificationPermission() {
-            if ('Notification' in window && Notification.permission === 'default') {
-                Notification.requestPermission();
             }
         }
 
@@ -774,7 +666,6 @@
             
             let icon = 'fa-check-circle';
             if (type === 'error') icon = 'fa-exclamation-circle';
-            if (type === 'warning') icon = 'fa-exclamation-triangle';
             
             notification.innerHTML = `
                 <i class="fas ${icon}"></i>
@@ -782,14 +673,6 @@
             `;
             
             document.body.appendChild(notification);
-            
-            // Уведомление рабочего стола
-            if (Notification.permission === 'granted') {
-                new Notification('KoiAu Messenger', {
-                    body: message,
-                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🐠</text></svg>'
-                });
-            }
             
             // Автоматическое удаление уведомления
             setTimeout(() => {
@@ -886,7 +769,7 @@
                 if (checkError) throw checkError;
                 
                 if (existingContact.length > 0) {
-                    showNotification('Контакт уже добавлен', 'warning');
+                    showNotification('Контакт уже добавлен', 'error');
                     closeAddContactModal();
                     return;
                 }
@@ -931,14 +814,6 @@
             
             // Загружаем сообщения
             loadMessages();
-            
-            // Подписываемся на обновления в реальном времени
-            setupRealtimeSubscription();
-            
-            // На мобильных устройствах скрываем боковую панель
-            if (window.innerWidth <= 768) {
-                document.getElementById('contacts-sidebar').classList.remove('active');
-            }
         }
 
         // Получение ID беседы
@@ -1003,37 +878,6 @@
             messagesContainer.appendChild(messageElement);
         }
 
-        // Настройка подписки в реальном времени
-        function setupRealtimeSubscription() {
-            // Отписываемся от предыдущих подписок
-            supabase.removeAllChannels();
-            
-            const conversationId = getConversationId(currentContact);
-            
-            // Подписываемся на новые сообщения
-            supabase
-                .channel('messages')
-                .on('postgres_changes', 
-                    { 
-                        event: 'INSERT', 
-                        schema: 'public', 
-                        table: 'messages',
-                        filter: `conversation_id=eq.${conversationId}`
-                    }, 
-                    (payload) => {
-                        displayMessage(payload.new);
-                        const messagesContainer = document.getElementById('messages-container');
-                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                        
-                        // Показываем уведомление, если приложение не в фокусе
-                        if (document.hidden && payload.new.sender_phone !== currentUser) {
-                            showNotification(`Новое сообщение от ${payload.new.sender_phone}: ${payload.new.message}`);
-                        }
-                    }
-                )
-                .subscribe();
-        }
-
         // Отправка сообщения
         async function sendMessage() {
             const messageInput = document.getElementById('message-input');
@@ -1056,6 +900,7 @@
                 if (error) throw error;
                 
                 messageInput.value = '';
+                loadMessages(); // Перезагружаем сообщения для отображения нового
                 
             } catch (error) {
                 console.error('Error sending message:', error);
@@ -1070,38 +915,6 @@
                 sendMessage();
             }
         });
-
-        // Переключение боковой панели на мобильных устройствах
-        function toggleSidebar() {
-            const sidebar = document.getElementById('contacts-sidebar');
-            sidebar.classList.toggle('active');
-        }
-
-        // Автоматическое удаление старых сообщений
-        async function cleanupOldMessages() {
-            try {
-                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-                
-                const { error } = await supabase
-                    .from('messages')
-                    .delete()
-                    .lt('created_at', oneDayAgo);
-                    
-                if (error) throw error;
-                
-            } catch (error) {
-                console.error('Error cleaning up messages:', error);
-            }
-        }
-
-        // Запуск очистки каждые 6 часов
-        function startCleanupInterval() {
-            // Запускаем сразу при загрузке
-            cleanupOldMessages();
-            
-            // Затем каждые 6 часов
-            setInterval(cleanupOldMessages, 6 * 60 * 60 * 1000);
-        }
 
         // Инициализация при загрузке
         document.addEventListener('DOMContentLoaded', function() {
@@ -1118,35 +931,7 @@
                 document.getElementById('user-avatar').textContent = savedUser.slice(-2);
                 
                 loadContacts();
-                requestNotificationPermission();
-                startCleanupInterval();
             }
-            
-            // Форматирование номера телефона
-            const phoneInputs = document.querySelectorAll('input[type="tel"]');
-            phoneInputs.forEach(input => {
-                input.addEventListener('input', function(e) {
-                    let value = e.target.value.replace(/\D/g, '');
-                    if (value.startsWith('7') || value.startsWith('8')) {
-                        value = value.substring(1);
-                    }
-                    
-                    if (value.length > 0) {
-                        value = '+7 (' + value;
-                        if (value.length > 7) {
-                            value = value.substring(0, 7) + ') ' + value.substring(7);
-                        }
-                        if (value.length > 12) {
-                            value = value.substring(0, 12) + '-' + value.substring(12);
-                        }
-                        if (value.length > 15) {
-                            value = value.substring(0, 15) + '-' + value.substring(15, 17);
-                        }
-                    }
-                    
-                    e.target.value = value;
-                });
-            });
         });
     </script>
 </body>
