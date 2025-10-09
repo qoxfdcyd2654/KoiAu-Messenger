@@ -539,400 +539,421 @@
         </div>
     </div>
 
-    <script>
-        // Инициализация Supabase
+ <script>
+    // Глобальные переменные - ПЕРЕНОСИМ ИХ В САМОЕ НАЧАЛО
+    let currentUser = null;
+    let currentContact = null;
+    let confirmationCode = ''; // Инициализируем ПУСТУЮ строку
+
+    // Инициализация Supabase - ДЕЛАЕМ ЕЁ ОТДЕЛЬНОЙ ФУНКЦИЕЙ
+    function initializeSupabase() {
         const supabaseUrl = 'https://pyxfhszrzzeitqwcpjlf.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5eGZoc3pyenplaXRxd2NwamxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5OTU1MTQsImV4cCI6MjA3NTU3MTUxNH0.tjopCw35-JZP4pyVjL-Zew-9NsnP9VPKOseDvEO7Ju4';
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        return supabase.createClient(supabaseUrl, supabaseKey);
+    }
 
-        // Глобальные переменные
-        let currentUser = null;
-        let currentContact = null;
-        let confirmationCode = ''; // Инициализируем здесь
+    // Создаем глобальную переменную supabase
+    const supabase = initializeSupabase();
 
-        // Показать экран привязки номера
-        function showPhoneSetup() {
-            document.getElementById('welcome-screen').classList.add('hidden');
-            document.getElementById('phone-setup').classList.remove('hidden');
+    // Показать экран привязки номера
+    function showPhoneSetup() {
+        document.getElementById('welcome-screen').classList.add('hidden');
+        document.getElementById('phone-setup').classList.remove('hidden');
+    }
+
+    // Генерация 4-значного кода
+    function generateConfirmationCode() {
+        return Math.floor(1000 + Math.random() * 9000).toString();
+    }
+
+    // Отправка кода подтверждения - ИСПРАВЛЕННАЯ ВЕРСИЯ
+    async function sendConfirmationCode() {
+        const phone = document.getElementById('phone-input').value;
+        
+        if (!phone) {
+            showNotification('Введите номер телефона', 'error');
+            return;
         }
-
-        // Генерация 4-значного кода
-        function generateConfirmationCode() {
-            return Math.floor(1000 + Math.random() * 9000).toString();
-        }
-
-        // Отправка кода подтверждения
-        async function sendConfirmationCode() {
-            const phone = document.getElementById('phone-input').value;
-            
-            if (!phone) {
-                showNotification('Введите номер телефона', 'error');
-                return;
-            }
-            
+        
+        try {
             // Генерируем код и сохраняем в переменную
             confirmationCode = generateConfirmationCode();
             console.log('Generated code:', confirmationCode);
             
-            try {
-                const { data, error } = await supabase
-                    .from('users')
-                    .upsert({ 
-                        phone: phone,
-                        confirmation_code: confirmationCode,
-                        is_verified: false
-                    }, { onConflict: 'phone' });
-                    
-                if (error) throw error;
+            const { data, error } = await supabase
+                .from('users')
+                .upsert({ 
+                    phone: phone,
+                    confirmation_code: confirmationCode,
+                    is_verified: false
+                }, { onConflict: 'phone' });
                 
-                // Показываем уведомление с кодом
-                showNotification(`Код подтверждения: ${confirmationCode}`);
-                document.getElementById('code-verification').classList.remove('hidden');
-                
-            } catch (error) {
-                console.error('Error:', error);
-                showNotification('Ошибка при отправке кода', 'error');
-            }
-        }
-
-        // Переход к следующему полю ввода кода
-        function moveToNext(input, nextIndex) {
-            if (input.value.length === 1) {
-                if (nextIndex <= 4) {
-                    const nextInput = document.querySelector(`.code-input:nth-child(${nextIndex})`);
-                    if (nextInput) nextInput.focus();
-                }
-            }
-        }
-
-        // Подтверждение кода
-        async function verifyCode() {
-            const phone = document.getElementById('phone-input').value;
-            const codeInputs = document.querySelectorAll('.code-input');
-            let enteredCode = '';
+            if (error) throw error;
             
-            codeInputs.forEach(input => {
-                enteredCode += input.value;
+            // Показываем уведомление с кодом
+            showNotification(`Код подтверждения: ${confirmationCode}`);
+            document.getElementById('code-verification').classList.remove('hidden');
+            
+        } catch (error) {
+            console.error('Error sending code:', error);
+            showNotification('Ошибка при отправке кода', 'error');
+        }
+    }
+
+    // Переход к следующему полю ввода кода
+    function moveToNext(input, nextIndex) {
+        if (input.value.length === 1) {
+            if (nextIndex <= 4) {
+                const nextInput = document.querySelector(`.code-input:nth-child(${nextIndex})`);
+                if (nextInput) nextInput.focus();
+            }
+        }
+    }
+
+    // Подтверждение кода - ИСПРАВЛЕННАЯ ВЕРСИЯ
+    async function verifyCode() {
+        const phone = document.getElementById('phone-input').value;
+        const codeInputs = document.querySelectorAll('.code-input');
+        let enteredCode = '';
+        
+        codeInputs.forEach(input => {
+            enteredCode += input.value;
+        });
+        
+        if (enteredCode.length !== 4) {
+            showNotification('Введите полный код', 'error');
+            return;
+        }
+        
+        // Проверяем, что confirmationCode инициализирован
+        if (!confirmationCode) {
+            showNotification('Сначала получите код подтверждения', 'error');
+            return;
+        }
+        
+        if (enteredCode !== confirmationCode) {
+            showNotification('Неверный код подтверждения', 'error');
+            return;
+        }
+        
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .update({ is_verified: true })
+                .eq('phone', phone)
+                .eq('confirmation_code', confirmationCode);
+                
+            if (error) throw error;
+            
+            currentUser = phone;
+            localStorage.setItem('currentUser', phone);
+            
+            document.getElementById('phone-setup').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            
+            // Обновляем информацию о пользователе
+            document.getElementById('user-phone').textContent = phone;
+            document.getElementById('user-avatar').textContent = phone.slice(-2);
+            
+            loadContacts();
+            
+            showNotification('Номер успешно подтвержден!');
+            
+        } catch (error) {
+            console.error('Error verifying code:', error);
+            showNotification('Ошибка при подтверждении кода', 'error');
+        }
+    }
+
+    // Показать уведомление
+    function showNotification(message, type = 'success') {
+        // Удаляем предыдущие уведомления
+        const existingNotifications = document.querySelectorAll('.notification');
+        existingNotifications.forEach(notification => notification.remove());
+        
+        // Создаем новое уведомление
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        
+        let icon = 'fa-check-circle';
+        if (type === 'error') icon = 'fa-exclamation-circle';
+        
+        notification.innerHTML = `
+            <i class="fas ${icon}"></i>
+            <span>${message}</span>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Автоматическое удаление уведомления
+        setTimeout(() => {
+            notification.remove();
+        }, 5000);
+    }
+
+    // Загрузка контактов
+    async function loadContacts() {
+        try {
+            const { data, error } = await supabase
+                .from('contacts')
+                .select('contact_phone')
+                .eq('user_id', currentUser);
+                
+            if (error) throw error;
+            
+            const contactsList = document.getElementById('contacts-list');
+            contactsList.innerHTML = '';
+            
+            if (data.length === 0) {
+                contactsList.innerHTML = '<p style="text-align: center; padding: 20px; color: var(--gray-dark);">Контакты не найдены</p>';
+                return;
+            }
+            
+            data.forEach(contact => {
+                const contactElement = document.createElement('div');
+                contactElement.className = 'contact-item';
+                contactElement.onclick = () => openChat(contact.contact_phone);
+                
+                contactElement.innerHTML = `
+                    <div class="contact-avatar">${contact.contact_phone.slice(-2)}</div>
+                    <div class="contact-info">
+                        <h4>${contact.contact_phone}</h4>
+                        <p>В сети</p>
+                    </div>
+                `;
+                
+                contactsList.appendChild(contactElement);
             });
             
-            if (enteredCode.length !== 4) {
-                showNotification('Введите полный код', 'error');
+        } catch (error) {
+            console.error('Error loading contacts:', error);
+        }
+    }
+
+    // Показать модальное окно добавления контакта
+    function showAddContactModal() {
+        document.getElementById('add-contact-modal').classList.remove('hidden');
+        document.getElementById('new-contact-phone').focus();
+    }
+
+    // Закрыть модальное окно добавления контакта
+    function closeAddContactModal() {
+        document.getElementById('add-contact-modal').classList.add('hidden');
+        document.getElementById('new-contact-phone').value = '';
+    }
+
+    // Добавление контакта
+    async function addContact() {
+        const contactPhone = document.getElementById('new-contact-phone').value;
+        
+        if (!contactPhone) {
+            showNotification('Введите номер телефона', 'error');
+            return;
+        }
+        
+        if (contactPhone === currentUser) {
+            showNotification('Нельзя добавить свой номер', 'error');
+            return;
+        }
+        
+        try {
+            // Проверяем существует ли пользователь
+            const { data: userData, error: userError } = await supabase
+                .from('users')
+                .select('phone')
+                .eq('phone', contactPhone)
+                .eq('is_verified', true);
+                
+            if (userError) throw userError;
+            
+            if (userData.length === 0) {
+                showNotification('Контакт не найден', 'error');
                 return;
             }
             
-            if (enteredCode !== confirmationCode) {
-                showNotification('Неверный код подтверждения', 'error');
-                return;
-            }
+            // Проверяем, не добавлен ли уже контакт
+            const { data: existingContact, error: checkError } = await supabase
+                .from('contacts')
+                .select('id')
+                .eq('user_id', currentUser)
+                .eq('contact_phone', contactPhone);
+                
+            if (checkError) throw checkError;
             
-            try {
-                const { data, error } = await supabase
-                    .from('users')
-                    .update({ is_verified: true })
-                    .eq('phone', phone)
-                    .eq('confirmation_code', confirmationCode);
-                    
-                if (error) throw error;
-                
-                currentUser = phone;
-                localStorage.setItem('currentUser', phone);
-                
-                document.getElementById('phone-setup').classList.add('hidden');
-                document.getElementById('main-app').classList.remove('hidden');
-                
-                // Обновляем информацию о пользователе
-                document.getElementById('user-phone').textContent = phone;
-                document.getElementById('user-avatar').textContent = phone.slice(-2);
-                
-                loadContacts();
-                
-                showNotification('Номер успешно подтвержден!');
-                
-            } catch (error) {
-                console.error('Error:', error);
-                showNotification('Ошибка при подтверждении кода', 'error');
-            }
-        }
-
-        // Показать уведомление
-        function showNotification(message, type = 'success') {
-            // Удаляем предыдущие уведомления
-            const existingNotifications = document.querySelectorAll('.notification');
-            existingNotifications.forEach(notification => notification.remove());
-            
-            // Создаем новое уведомление
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            
-            let icon = 'fa-check-circle';
-            if (type === 'error') icon = 'fa-exclamation-circle';
-            
-            notification.innerHTML = `
-                <i class="fas ${icon}"></i>
-                <span>${message}</span>
-            `;
-            
-            document.body.appendChild(notification);
-            
-            // Автоматическое удаление уведомления
-            setTimeout(() => {
-                notification.remove();
-            }, 5000);
-        }
-
-        // Загрузка контактов
-        async function loadContacts() {
-            try {
-                const { data, error } = await supabase
-                    .from('contacts')
-                    .select('contact_phone')
-                    .eq('user_id', currentUser);
-                    
-                if (error) throw error;
-                
-                const contactsList = document.getElementById('contacts-list');
-                contactsList.innerHTML = '';
-                
-                if (data.length === 0) {
-                    contactsList.innerHTML = '<p style="text-align: center; padding: 20px; color: var(--gray-dark);">Контакты не найдены</p>';
-                    return;
-                }
-                
-                data.forEach(contact => {
-                    const contactElement = document.createElement('div');
-                    contactElement.className = 'contact-item';
-                    contactElement.onclick = () => openChat(contact.contact_phone);
-                    
-                    contactElement.innerHTML = `
-                        <div class="contact-avatar">${contact.contact_phone.slice(-2)}</div>
-                        <div class="contact-info">
-                            <h4>${contact.contact_phone}</h4>
-                            <p>В сети</p>
-                        </div>
-                    `;
-                    
-                    contactsList.appendChild(contactElement);
-                });
-                
-            } catch (error) {
-                console.error('Error loading contacts:', error);
-            }
-        }
-
-        // Показать модальное окно добавления контакта
-        function showAddContactModal() {
-            document.getElementById('add-contact-modal').classList.remove('hidden');
-        }
-
-        // Закрыть модальное окно добавления контакта
-        function closeAddContactModal() {
-            document.getElementById('add-contact-modal').classList.add('hidden');
-            document.getElementById('new-contact-phone').value = '';
-        }
-
-        // Добавление контакта
-        async function addContact() {
-            const contactPhone = document.getElementById('new-contact-phone').value;
-            
-            if (!contactPhone) {
-                showNotification('Введите номер телефона', 'error');
-                return;
-            }
-            
-            if (contactPhone === currentUser) {
-                showNotification('Нельзя добавить свой номер', 'error');
-                return;
-            }
-            
-            try {
-                // Проверяем существует ли пользователь
-                const { data: userData, error: userError } = await supabase
-                    .from('users')
-                    .select('phone')
-                    .eq('phone', contactPhone)
-                    .eq('is_verified', true);
-                    
-                if (userError) throw userError;
-                
-                if (userData.length === 0) {
-                    showNotification('Контакт не найден', 'error');
-                    return;
-                }
-                
-                // Проверяем, не добавлен ли уже контакт
-                const { data: existingContact, error: checkError } = await supabase
-                    .from('contacts')
-                    .select('id')
-                    .eq('user_id', currentUser)
-                    .eq('contact_phone', contactPhone);
-                    
-                if (checkError) throw checkError;
-                
-                if (existingContact.length > 0) {
-                    showNotification('Контакт уже добавлен', 'error');
-                    closeAddContactModal();
-                    return;
-                }
-                
-                // Добавляем контакт
-                const { data, error } = await supabase
-                    .from('contacts')
-                    .insert({
-                        user_id: currentUser,
-                        contact_phone: contactPhone
-                    });
-                    
-                if (error) throw error;
-                
-                loadContacts();
+            if (existingContact.length > 0) {
+                showNotification('Контакт уже добавлен', 'error');
                 closeAddContactModal();
-                showNotification('Контакт успешно добавлен');
-                
-            } catch (error) {
-                console.error('Error adding contact:', error);
-                showNotification('Ошибка при добавлении контакта', 'error');
+                return;
             }
-        }
-
-        // Открытие чата
-        function openChat(contactPhone) {
-            currentContact = contactPhone;
             
-            // Обновляем заголовок чата
-            document.getElementById('current-contact-name').textContent = contactPhone;
-            document.getElementById('current-contact-avatar').textContent = contactPhone.slice(-2);
-            document.getElementById('current-contact-status').textContent = 'В сети';
-            
-            // Активируем выбранный контакт
-            document.querySelectorAll('.contact-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            event.currentTarget.classList.add('active');
-            
-            // Показываем область ввода сообщения
-            document.getElementById('message-input-area').classList.remove('hidden');
-            
-            // Загружаем сообщения
-            loadMessages();
-        }
-
-        // Получение ID беседы
-        function getConversationId(contactPhone) {
-            const phones = [currentUser, contactPhone].sort();
-            return phones.join('_');
-        }
-
-        // Загрузка сообщений
-        async function loadMessages() {
-            try {
-                const conversationId = getConversationId(currentContact);
-                
-                const { data, error } = await supabase
-                    .from('messages')
-                    .select('*')
-                    .eq('conversation_id', conversationId)
-                    .order('created_at', { ascending: true });
-                    
-                if (error) throw error;
-                
-                const messagesContainer = document.getElementById('messages-container');
-                messagesContainer.innerHTML = '';
-                
-                if (data.length === 0) {
-                    messagesContainer.innerHTML = `
-                        <div style="text-align: center; padding: 40px; color: var(--gray-dark);">
-                            <p>Начните общение с этим контактом</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                data.forEach(message => {
-                    displayMessage(message);
+            // Добавляем контакт
+            const { data, error } = await supabase
+                .from('contacts')
+                .insert({
+                    user_id: currentUser,
+                    contact_phone: contactPhone
                 });
                 
-                // Прокручиваем к последнему сообщению
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                
-            } catch (error) {
-                console.error('Error loading messages:', error);
-            }
+            if (error) throw error;
+            
+            loadContacts();
+            closeAddContactModal();
+            showNotification('Контакт успешно добавлен');
+            
+        } catch (error) {
+            console.error('Error adding contact:', error);
+            showNotification('Ошибка при добавлении контакта', 'error');
         }
+    }
 
-        // Отображение сообщения
-        function displayMessage(message) {
+    // Открытие чата
+    function openChat(contactPhone) {
+        currentContact = contactPhone;
+        
+        // Обновляем заголовок чата
+        document.getElementById('current-contact-name').textContent = contactPhone;
+        document.getElementById('current-contact-avatar').textContent = contactPhone.slice(-2);
+        document.getElementById('current-contact-status').textContent = 'В сети';
+        
+        // Активируем выбранный контакт
+        document.querySelectorAll('.contact-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Находим и активируем нужный контакт
+        const contactItems = document.querySelectorAll('.contact-item');
+        contactItems.forEach(item => {
+            if (item.querySelector('h4').textContent === contactPhone) {
+                item.classList.add('active');
+            }
+        });
+        
+        // Показываем область ввода сообщения
+        document.getElementById('message-input-area').classList.remove('hidden');
+        
+        // Загружаем сообщения
+        loadMessages();
+    }
+
+    // Получение ID беседы
+    function getConversationId(contactPhone) {
+        const phones = [currentUser, contactPhone].sort();
+        return phones.join('_');
+    }
+
+    // Загрузка сообщений
+    async function loadMessages() {
+        try {
+            const conversationId = getConversationId(currentContact);
+            
+            const { data, error } = await supabase
+                .from('messages')
+                .select('*')
+                .eq('conversation_id', conversationId)
+                .order('created_at', { ascending: true });
+                
+            if (error) throw error;
+            
             const messagesContainer = document.getElementById('messages-container');
-            const messageElement = document.createElement('div');
+            messagesContainer.innerHTML = '';
             
-            const isOwn = message.sender_phone === currentUser;
-            messageElement.className = `message ${isOwn ? 'own' : 'other'}`;
+            if (data.length === 0) {
+                messagesContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--gray-dark);">
+                        <p>Начните общение с этим контактом</p>
+                    </div>
+                `;
+                return;
+            }
             
-            const time = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            data.forEach(message => {
+                displayMessage(message);
+            });
             
-            messageElement.innerHTML = `
-                ${!isOwn ? `<div class="message-sender">${message.sender_phone}</div>` : ''}
-                <div class="message-content">${message.message}</div>
-                <div class="message-time">${time}</div>
-            `;
+            // Прокручиваем к последнему сообщению
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
             
-            messagesContainer.appendChild(messageElement);
+        } catch (error) {
+            console.error('Error loading messages:', error);
         }
+    }
 
-        // Отправка сообщения
-        async function sendMessage() {
-            const messageInput = document.getElementById('message-input');
-            const message = messageInput.value.trim();
+    // Отображение сообщения
+    function displayMessage(message) {
+        const messagesContainer = document.getElementById('messages-container');
+        const messageElement = document.createElement('div');
+        
+        const isOwn = message.sender_phone === currentUser;
+        messageElement.className = `message ${isOwn ? 'own' : 'other'}`;
+        
+        const time = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        messageElement.innerHTML = `
+            ${!isOwn ? `<div class="message-sender">${message.sender_phone}</div>` : ''}
+            <div class="message-content">${message.message}</div>
+            <div class="message-time">${time}</div>
+        `;
+        
+        messagesContainer.appendChild(messageElement);
+    }
+
+    // Отправка сообщения
+    async function sendMessage() {
+        const messageInput = document.getElementById('message-input');
+        const message = messageInput.value.trim();
+        
+        if (!message || !currentContact) return;
+        
+        try {
+            const conversationId = getConversationId(currentContact);
             
-            if (!message || !currentContact) return;
+            const { data, error } = await supabase
+                .from('messages')
+                .insert({
+                    conversation_id: conversationId,
+                    sender_phone: currentUser,
+                    receiver_phone: currentContact,
+                    message: message
+                });
+                
+            if (error) throw error;
             
-            try {
-                const conversationId = getConversationId(currentContact);
-                
-                const { data, error } = await supabase
-                    .from('messages')
-                    .insert({
-                        conversation_id: conversationId,
-                        sender_phone: currentUser,
-                        receiver_phone: currentContact,
-                        message: message
-                    });
-                    
-                if (error) throw error;
-                
-                messageInput.value = '';
-                loadMessages(); // Перезагружаем сообщения для отображения нового
-                
-            } catch (error) {
-                console.error('Error sending message:', error);
-                showNotification('Ошибка при отправке сообщения', 'error');
-            }
+            messageInput.value = '';
+            loadMessages(); // Перезагружаем сообщения для отображения нового
+            
+        } catch (error) {
+            console.error('Error sending message:', error);
+            showNotification('Ошибка при отправке сообщения', 'error');
         }
+    }
 
-        // Отправка сообщения при нажатии Enter
-        document.getElementById('message-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-
-        // Инициализация при загрузке
-        document.addEventListener('DOMContentLoaded', function() {
-            // Проверяем авторизацию пользователя
-            const savedUser = localStorage.getItem('currentUser');
-            if (savedUser) {
-                currentUser = savedUser;
-                document.getElementById('welcome-screen').classList.add('hidden');
-                document.getElementById('phone-setup').classList.add('hidden');
-                document.getElementById('main-app').classList.remove('hidden');
-                
-                // Обновляем информацию о пользователе
-                document.getElementById('user-phone').textContent = savedUser;
-                document.getElementById('user-avatar').textContent = savedUser.slice(-2);
-                
-                loadContacts();
-            }
-        });
-    </script>
+    // Отправка сообщения при нажатии Enter
+    document.addEventListener('DOMContentLoaded', function() {
+        const messageInput = document.getElementById('message-input');
+        if (messageInput) {
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        }
+        
+        // Проверяем авторизацию пользователя
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+            currentUser = savedUser;
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('phone-setup').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            
+            // Обновляем информацию о пользователе
+            document.getElementById('user-phone').textContent = savedUser;
+            document.getElementById('user-avatar').textContent = savedUser.slice(-2);
+            
+            loadContacts();
+        }
+    });
+</script>
 </body>
 </html>
