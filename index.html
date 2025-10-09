@@ -478,36 +478,6 @@
             transform: translateX(-50%) scale(1.05);
         }
 
-        .typing-indicator {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 10px 15px;
-            color: var(--gray-dark);
-            font-style: italic;
-        }
-
-        .typing-dots {
-            display: flex;
-            gap: 3px;
-        }
-
-        .typing-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--gray-dark);
-            animation: typing 1.4s infinite ease-in-out;
-        }
-
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-
-        @keyframes typing {
-            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-            40% { transform: scale(1); opacity: 1; }
-        }
-        
         .load-more-btn {
             display: block;
             margin: 10px auto;
@@ -841,17 +811,21 @@
             
             currentConversationId = conversationId;
             
+            // Подписываемся на ВСЕ новые сообщения в реальном времени
             messageSubscription = supabase
-                .channel('messages')
+                .channel('public:messages')
                 .on('postgres_changes', 
                     {
                         event: 'INSERT',
                         schema: 'public',
-                        table: 'messages',
-                        filter: `conversation_id=eq.${conversationId}`
+                        table: 'messages'
                     },
                     (payload) => {
-                        if (currentContact && getConversationId(currentContact) === conversationId) {
+                        // Проверяем, относится ли сообщение к текущему чату
+                        if (payload.new.conversation_id === conversationId) {
+                            console.log('New message received in real-time:', payload.new);
+                            
+                            // Отображаем сообщение
                             displayMessage(payload.new, true);
                             
                             // Прокручиваем вниз только если пользователь уже находится внизу
@@ -861,11 +835,14 @@
                                 showScrollIndicator();
                             }
                             
+                            // Обновляем последнее сообщение в списке контактов
                             updateLastMessageInContacts(payload.new);
                         }
                     }
                 )
-                .subscribe();
+                .subscribe((status) => {
+                    console.log('Realtime subscription status:', status);
+                });
         }
 
         // Функция для обновления последнего сообщения в списке контактов
@@ -1073,8 +1050,7 @@
                     .from('messages')
                     .select('*')
                     .eq('conversation_id', conversationId)
-                    .order('created_at', { ascending: false })
-                    .range(messageOffset, messageOffset + MESSAGE_LIMIT - 1);
+                    .order('created_at', { ascending: true });
                     
                 if (error) throw error;
                 
@@ -1094,17 +1070,8 @@
                     }
                 }
                 
-                // Добавляем кнопку "Загрузить еще" если есть больше сообщений
-                if (messageOffset === 0 && data.length === MESSAGE_LIMIT) {
-                    const loadMoreButton = document.createElement('button');
-                    loadMoreButton.className = 'load-more-btn';
-                    loadMoreButton.textContent = 'Загрузить предыдущие сообщения';
-                    loadMoreButton.onclick = loadMoreMessages;
-                    messagesContainer.appendChild(loadMoreButton);
-                }
-                
-                // Отображаем сообщения в обратном порядке (от старых к новым)
-                data.reverse().forEach(message => {
+                // Отображаем сообщения
+                data.forEach(message => {
                     displayMessage(message, false);
                 });
                 
@@ -1116,12 +1083,6 @@
             } catch (error) {
                 console.error('Error loading messages:', error);
             }
-        }
-
-        // Загрузка дополнительных сообщений
-        async function loadMoreMessages() {
-            messageOffset += MESSAGE_LIMIT;
-            await loadMessages();
         }
 
         // Отображение сообщения
@@ -1144,13 +1105,8 @@
             if (isNew) {
                 messagesContainer.appendChild(messageElement);
             } else {
-                // Если это загрузка истории, добавляем в начало (после кнопки загрузки)
-                const loadMoreButton = messagesContainer.querySelector('.load-more-btn');
-                if (loadMoreButton) {
-                    messagesContainer.insertBefore(messageElement, loadMoreButton.nextSibling);
-                } else {
-                    messagesContainer.insertBefore(messageElement, messagesContainer.firstChild);
-                }
+                // Если это загрузка истории, добавляем в начало
+                messagesContainer.appendChild(messageElement);
             }
         }
 
@@ -1233,12 +1189,17 @@
         document.addEventListener('DOMContentLoaded', function() {
             initSupabase();
             
-            // Исправленная маска для ввода телефона
+            // Улучшенная маска для ввода телефона
             const phoneInput = document.getElementById('phone-input');
             const newContactPhoneInput = document.getElementById('new-contact-phone');
             
             function applyPhoneMask(input) {
                 input.addEventListener('input', function(e) {
+                    // Сохраняем позицию курсора
+                    let cursorPos = e.target.selectionStart;
+                    let originalLength = e.target.value.length;
+                    
+                    // Удаляем все нецифровые символы
                     let value = e.target.value.replace(/\D/g, '');
                     
                     // Если номер начинается с 7 или 8, убираем первую цифру
@@ -1246,7 +1207,11 @@
                         value = value.substring(1);
                     }
                     
-                    // Форматируем номер
+                    // Ограничиваем до 10 цифр
+                    if (value.length > 10) {
+                        value = value.substring(0, 10);
+                    }
+                    
                     let formatted = '';
                     if (value.length > 0) {
                         formatted = '+7 (';
@@ -1264,6 +1229,11 @@
                     }
                     
                     e.target.value = formatted;
+                    
+                    // Восстанавливаем позицию курсора с учетом добавленных символов
+                    let newLength = e.target.value.length;
+                    let lengthDiff = newLength - originalLength;
+                    e.target.setSelectionRange(cursorPos + lengthDiff, cursorPos + lengthDiff);
                 });
             }
             
