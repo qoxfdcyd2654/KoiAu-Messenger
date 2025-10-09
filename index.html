@@ -646,7 +646,7 @@
         // Глобальные переменные
         let currentUser = null;
         let currentContact = null;
-        let confirmationCode = '';
+        let confirmationCode = ''; // Инициализируем переменную
 
         // Показать экран привязки номера
         function showPhoneSetup() {
@@ -668,6 +668,7 @@
                 return;
             }
             
+            // Генерируем код и сохраняем в переменную
             confirmationCode = generateConfirmationCode();
             
             try {
@@ -716,6 +717,7 @@
                 return;
             }
             
+            // Используем переменную confirmationCode
             if (enteredCode !== confirmationCode) {
                 showNotification('Неверный код подтверждения', 'error');
                 return;
