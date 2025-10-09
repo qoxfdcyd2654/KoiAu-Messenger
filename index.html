@@ -646,7 +646,7 @@
         // Глобальные переменные
         let currentUser = null;
         let currentContact = null;
-        let confirmationCode = ''; // Инициализируем переменную
+        let currentConfirmationCode = ''; // Переименовали переменную
 
         // Показать экран привязки номера
         function showPhoneSetup() {
@@ -669,21 +669,22 @@
             }
             
             // Генерируем код и сохраняем в переменную
-            confirmationCode = generateConfirmationCode();
+            currentConfirmationCode = generateConfirmationCode();
+            console.log('Generated code:', currentConfirmationCode); // Для отладки
             
             try {
                 const { data, error } = await supabase
                     .from('users')
                     .upsert({ 
                         phone: phone,
-                        confirmation_code: confirmationCode,
+                        confirmation_code: currentConfirmationCode,
                         is_verified: false
                     }, { onConflict: 'phone' });
                     
                 if (error) throw error;
                 
                 // Показываем уведомление с кодом
-                showNotification(`Код подтверждения: ${confirmationCode}`);
+                showNotification(`Код подтверждения: ${currentConfirmationCode}`);
                 document.getElementById('code-verification').classList.remove('hidden');
                 
             } catch (error) {
@@ -717,8 +718,8 @@
                 return;
             }
             
-            // Используем переменную confirmationCode
-            if (enteredCode !== confirmationCode) {
+            // Используем переименованную переменную
+            if (enteredCode !== currentConfirmationCode) {
                 showNotification('Неверный код подтверждения', 'error');
                 return;
             }
@@ -728,7 +729,7 @@
                     .from('users')
                     .update({ is_verified: true })
                     .eq('phone', phone)
-                    .eq('confirmation_code', confirmationCode);
+                    .eq('confirmation_code', currentConfirmationCode);
                     
                 if (error) throw error;
                 
