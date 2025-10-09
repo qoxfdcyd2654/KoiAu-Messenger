@@ -540,20 +540,21 @@
     </div>
 
  <script>
-    // Глобальные переменные - ПЕРЕНОСИМ ИХ В САМОЕ НАЧАЛО
+    // Глобальные переменные
     let currentUser = null;
     let currentContact = null;
-    let confirmationCode = ''; // Инициализируем ПУСТУЮ строку
+    let confirmationCode = '';
+    let supabase = null; // Инициализируем как null
 
-    // Инициализация Supabase - ДЕЛАЕМ ЕЁ ОТДЕЛЬНОЙ ФУНКЦИЕЙ
-    function initializeSupabase() {
-        const supabaseUrl = 'https://pyxfhszrzzeitqwcpjlf.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5eGZoc3pyenplaXRxd2NwamxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5OTU1MTQsImV4cCI6MjA3NTU3MTUxNH0.tjopCw35-JZP4pyVjL-Zew-9NsnP9VPKOseDvEO7Ju4';
-        return supabase.createClient(supabaseUrl, supabaseKey);
+    // Функция инициализации Supabase
+    function initSupabase() {
+        if (!supabase) {
+            const supabaseUrl = 'https://pyxfhszrzzeitqwcpjlf.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5eGZoc3pyenplaXRxd2NwamxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5OTU1MTQsImV4cCI6MjA3NTU3MTUxNH0.tjopCw35-JZP4pyVjL-Zew-9NsnP9VPKOseDvEO7Ju4';
+            supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        }
+        return supabase;
     }
-
-    // Создаем глобальную переменную supabase
-    const supabase = initializeSupabase();
 
     // Показать экран привязки номера
     function showPhoneSetup() {
@@ -568,6 +569,9 @@
 
     // Отправка кода подтверждения - ИСПРАВЛЕННАЯ ВЕРСИЯ
     async function sendConfirmationCode() {
+        // Инициализируем Supabase перед использованием
+        const supabaseClient = initSupabase();
+        
         const phone = document.getElementById('phone-input').value;
         
         if (!phone) {
@@ -580,7 +584,7 @@
             confirmationCode = generateConfirmationCode();
             console.log('Generated code:', confirmationCode);
             
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('users')
                 .upsert({ 
                     phone: phone,
@@ -596,7 +600,7 @@
             
         } catch (error) {
             console.error('Error sending code:', error);
-            showNotification('Ошибка при отправке кода', 'error');
+            showNotification('Ошибка при отправке кода: ' + error.message, 'error');
         }
     }
 
@@ -610,8 +614,9 @@
         }
     }
 
-    // Подтверждение кода - ИСПРАВЛЕННАЯ ВЕРСИЯ
+    // Подтверждение кода
     async function verifyCode() {
+        const supabaseClient = initSupabase();
         const phone = document.getElementById('phone-input').value;
         const codeInputs = document.querySelectorAll('.code-input');
         let enteredCode = '';
@@ -625,7 +630,6 @@
             return;
         }
         
-        // Проверяем, что confirmationCode инициализирован
         if (!confirmationCode) {
             showNotification('Сначала получите код подтверждения', 'error');
             return;
@@ -637,7 +641,7 @@
         }
         
         try {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('users')
                 .update({ is_verified: true })
                 .eq('phone', phone)
@@ -651,7 +655,6 @@
             document.getElementById('phone-setup').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
             
-            // Обновляем информацию о пользователе
             document.getElementById('user-phone').textContent = phone;
             document.getElementById('user-avatar').textContent = phone.slice(-2);
             
@@ -667,11 +670,9 @@
 
     // Показать уведомление
     function showNotification(message, type = 'success') {
-        // Удаляем предыдущие уведомления
         const existingNotifications = document.querySelectorAll('.notification');
         existingNotifications.forEach(notification => notification.remove());
         
-        // Создаем новое уведомление
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         
@@ -685,7 +686,6 @@
         
         document.body.appendChild(notification);
         
-        // Автоматическое удаление уведомления
         setTimeout(() => {
             notification.remove();
         }, 5000);
@@ -693,8 +693,10 @@
 
     // Загрузка контактов
     async function loadContacts() {
+        const supabaseClient = initSupabase();
+        
         try {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('contacts')
                 .select('contact_phone')
                 .eq('user_id', currentUser);
@@ -744,6 +746,7 @@
 
     // Добавление контакта
     async function addContact() {
+        const supabaseClient = initSupabase();
         const contactPhone = document.getElementById('new-contact-phone').value;
         
         if (!contactPhone) {
@@ -757,8 +760,7 @@
         }
         
         try {
-            // Проверяем существует ли пользователь
-            const { data: userData, error: userError } = await supabase
+            const { data: userData, error: userError } = await supabaseClient
                 .from('users')
                 .select('phone')
                 .eq('phone', contactPhone)
@@ -771,8 +773,7 @@
                 return;
             }
             
-            // Проверяем, не добавлен ли уже контакт
-            const { data: existingContact, error: checkError } = await supabase
+            const { data: existingContact, error: checkError } = await supabaseClient
                 .from('contacts')
                 .select('id')
                 .eq('user_id', currentUser)
@@ -786,8 +787,7 @@
                 return;
             }
             
-            // Добавляем контакт
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('contacts')
                 .insert({
                     user_id: currentUser,
@@ -810,17 +810,14 @@
     function openChat(contactPhone) {
         currentContact = contactPhone;
         
-        // Обновляем заголовок чата
         document.getElementById('current-contact-name').textContent = contactPhone;
         document.getElementById('current-contact-avatar').textContent = contactPhone.slice(-2);
         document.getElementById('current-contact-status').textContent = 'В сети';
         
-        // Активируем выбранный контакт
         document.querySelectorAll('.contact-item').forEach(item => {
             item.classList.remove('active');
         });
         
-        // Находим и активируем нужный контакт
         const contactItems = document.querySelectorAll('.contact-item');
         contactItems.forEach(item => {
             if (item.querySelector('h4').textContent === contactPhone) {
@@ -828,10 +825,7 @@
             }
         });
         
-        // Показываем область ввода сообщения
         document.getElementById('message-input-area').classList.remove('hidden');
-        
-        // Загружаем сообщения
         loadMessages();
     }
 
@@ -843,10 +837,12 @@
 
     // Загрузка сообщений
     async function loadMessages() {
+        const supabaseClient = initSupabase();
+        
         try {
             const conversationId = getConversationId(currentContact);
             
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('messages')
                 .select('*')
                 .eq('conversation_id', conversationId)
@@ -870,7 +866,6 @@
                 displayMessage(message);
             });
             
-            // Прокручиваем к последнему сообщению
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
             
         } catch (error) {
@@ -899,6 +894,7 @@
 
     // Отправка сообщения
     async function sendMessage() {
+        const supabaseClient = initSupabase();
         const messageInput = document.getElementById('message-input');
         const message = messageInput.value.trim();
         
@@ -907,7 +903,7 @@
         try {
             const conversationId = getConversationId(currentContact);
             
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('messages')
                 .insert({
                     conversation_id: conversationId,
@@ -919,7 +915,7 @@
             if (error) throw error;
             
             messageInput.value = '';
-            loadMessages(); // Перезагружаем сообщения для отображения нового
+            loadMessages();
             
         } catch (error) {
             console.error('Error sending message:', error);
@@ -927,8 +923,11 @@
         }
     }
 
-    // Отправка сообщения при нажатии Enter
+    // Инициализация при загрузке
     document.addEventListener('DOMContentLoaded', function() {
+        // Инициализируем Supabase при загрузке
+        initSupabase();
+        
         const messageInput = document.getElementById('message-input');
         if (messageInput) {
             messageInput.addEventListener('keypress', function(e) {
@@ -939,7 +938,6 @@
             });
         }
         
-        // Проверяем авторизацию пользователя
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
             currentUser = savedUser;
@@ -947,7 +945,6 @@
             document.getElementById('phone-setup').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
             
-            // Обновляем информацию о пользователе
             document.getElementById('user-phone').textContent = savedUser;
             document.getElementById('user-avatar').textContent = savedUser.slice(-2);
             
