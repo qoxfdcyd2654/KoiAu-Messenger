@@ -324,6 +324,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
 
         .chat-header {
@@ -506,6 +507,23 @@
             0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
             40% { transform: scale(1); opacity: 1; }
         }
+        
+        .load-more-btn {
+            display: block;
+            margin: 10px auto;
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .load-more-btn:hover {
+            background: var(--primary-dark);
+        }
     </style>
 </head>
 <body>
@@ -622,6 +640,8 @@
         let messageSubscription = null;
         let currentConversationId = null;
         let isNearBottom = true;
+        let messageOffset = 0;
+        const MESSAGE_LIMIT = 50;
 
         // Функция инициализации Supabase
         function initSupabase() {
@@ -832,7 +852,7 @@
                     },
                     (payload) => {
                         if (currentContact && getConversationId(currentContact) === conversationId) {
-                            displayMessage(payload.new);
+                            displayMessage(payload.new, true);
                             
                             // Прокручиваем вниз только если пользователь уже находится внизу
                             if (isNearBottom) {
@@ -1010,6 +1030,7 @@
         function openChat(contactPhone) {
             cleanupSubscription();
             currentContact = contactPhone;
+            messageOffset = 0;
             
             document.getElementById('current-contact-name').textContent = formatPhone(contactPhone);
             document.getElementById('current-contact-avatar').textContent = contactPhone.slice(-2);
@@ -1052,36 +1073,59 @@
                     .from('messages')
                     .select('*')
                     .eq('conversation_id', conversationId)
-                    .order('created_at', { ascending: true });
+                    .order('created_at', { ascending: false })
+                    .range(messageOffset, messageOffset + MESSAGE_LIMIT - 1);
                     
                 if (error) throw error;
                 
                 const messagesContainer = document.getElementById('messages-container');
-                messagesContainer.innerHTML = '';
                 
-                if (data.length === 0) {
-                    messagesContainer.innerHTML = `
-                        <div style="text-align: center; padding: 40px; color: var(--gray-dark);">
-                            <p>Начните общение с этим контактом</p>
-                        </div>
-                    `;
-                    scrollToBottom();
-                    return;
+                // Если это первая загрузка, очищаем контейнер
+                if (messageOffset === 0) {
+                    messagesContainer.innerHTML = '';
+                    
+                    if (data.length === 0) {
+                        messagesContainer.innerHTML = `
+                            <div style="text-align: center; padding: 40px; color: var(--gray-dark);">
+                                <p>Начните общение с этим контактом</p>
+                            </div>
+                        `;
+                        return;
+                    }
                 }
                 
-                data.forEach(message => {
-                    displayMessage(message);
+                // Добавляем кнопку "Загрузить еще" если есть больше сообщений
+                if (messageOffset === 0 && data.length === MESSAGE_LIMIT) {
+                    const loadMoreButton = document.createElement('button');
+                    loadMoreButton.className = 'load-more-btn';
+                    loadMoreButton.textContent = 'Загрузить предыдущие сообщения';
+                    loadMoreButton.onclick = loadMoreMessages;
+                    messagesContainer.appendChild(loadMoreButton);
+                }
+                
+                // Отображаем сообщения в обратном порядке (от старых к новым)
+                data.reverse().forEach(message => {
+                    displayMessage(message, false);
                 });
                 
-                scrollToBottom();
+                // Прокручиваем вниз только при первой загрузке
+                if (messageOffset === 0) {
+                    scrollToBottom();
+                }
                 
             } catch (error) {
                 console.error('Error loading messages:', error);
             }
         }
 
+        // Загрузка дополнительных сообщений
+        async function loadMoreMessages() {
+            messageOffset += MESSAGE_LIMIT;
+            await loadMessages();
+        }
+
         // Отображение сообщения
-        function displayMessage(message) {
+        function displayMessage(message, isNew = false) {
             const messagesContainer = document.getElementById('messages-container');
             const messageElement = document.createElement('div');
             
@@ -1096,7 +1140,18 @@
                 <div class="message-time">${time}</div>
             `;
             
-            messagesContainer.appendChild(messageElement);
+            // Если это новое сообщение, добавляем в конец
+            if (isNew) {
+                messagesContainer.appendChild(messageElement);
+            } else {
+                // Если это загрузка истории, добавляем в начало (после кнопки загрузки)
+                const loadMoreButton = messagesContainer.querySelector('.load-more-btn');
+                if (loadMoreButton) {
+                    messagesContainer.insertBefore(messageElement, loadMoreButton.nextSibling);
+                } else {
+                    messagesContainer.insertBefore(messageElement, messagesContainer.firstChild);
+                }
+            }
         }
 
         // Отправка сообщения
@@ -1178,29 +1233,42 @@
         document.addEventListener('DOMContentLoaded', function() {
             initSupabase();
             
-            // Маска для ввода телефона
+            // Исправленная маска для ввода телефона
             const phoneInput = document.getElementById('phone-input');
-            if (phoneInput) {
-                phoneInput.addEventListener('input', function(e) {
+            const newContactPhoneInput = document.getElementById('new-contact-phone');
+            
+            function applyPhoneMask(input) {
+                input.addEventListener('input', function(e) {
                     let value = e.target.value.replace(/\D/g, '');
+                    
+                    // Если номер начинается с 7 или 8, убираем первую цифру
                     if (value.startsWith('7') || value.startsWith('8')) {
                         value = value.substring(1);
                     }
+                    
+                    // Форматируем номер
+                    let formatted = '';
                     if (value.length > 0) {
-                        value = '+7 (' + value;
-                        if (value.length > 7) {
-                            value = value.substring(0, 7) + ') ' + value.substring(7);
-                        }
-                        if (value.length > 12) {
-                            value = value.substring(0, 12) + '-' + value.substring(12, 14);
-                        }
-                        if (value.length > 15) {
-                            value = value.substring(0, 15) + '-' + value.substring(15, 17);
+                        formatted = '+7 (';
+                        if (value.length > 3) {
+                            formatted += value.substring(0, 3) + ') ' + value.substring(3, 6);
+                            if (value.length > 6) {
+                                formatted += '-' + value.substring(6, 8);
+                                if (value.length > 8) {
+                                    formatted += '-' + value.substring(8, 10);
+                                }
+                            }
+                        } else {
+                            formatted += value;
                         }
                     }
-                    e.target.value = value;
+                    
+                    e.target.value = formatted;
                 });
             }
+            
+            if (phoneInput) applyPhoneMask(phoneInput);
+            if (newContactPhoneInput) applyPhoneMask(newContactPhoneInput);
             
             const messageInput = document.getElementById('message-input');
             if (messageInput) {
